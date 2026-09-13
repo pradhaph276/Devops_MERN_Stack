@@ -1,94 +1,78 @@
-name: MERN CI
+name: MERN Backend CI
 
 on:
   push:
     branches:
-      - main
       - master
-
   pull_request:
     branches:
-      - main
       - master
 
 jobs:
 
-  mongo-init:
+  backend:
+    name: Backend CI
     runs-on: ubuntu-latest
-
-    env:
-      PORT: ${{ secrets.PORT }}
-      MONGO_URI: ${{ secrets.MONGO_URI }}
-      JWT_SECRET: ${{ secrets.JWT_SECRET }}
-
-    services:
-      mongo:
-        image: mongo
-        ports:
-          - 27017:27017
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
 
-      - name: Waiting for MongoDB to be ready
+      - name: Install Backend Dependencies
+        working-directory: ./backend
+        run: npm ci
+
+
+  backend-test:
+    name: Backend Test
+    runs-on: ubuntu-latest
+
+    services:
+      mongo:
+        image: mongo:8
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      PORT: 5000
+      MONGO_URI: mongodb://localhost:27017/todoapp
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Backend Dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Wait for MongoDB
         run: |
           until nc -z localhost 27017; do
             echo "Waiting for MongoDB..."
             sleep 2
           done
-
-          echo "MongoDB is up"
+          echo "MongoDB is ready"
 
       - name: Seed MongoDB
         working-directory: ./backend
-        run: |
-          npm install
-          node seedTasksData.js
-
-
-  test:
-    runs-on: ubuntu-latest
-
-    needs: mongo-init
-
-    env:
-      PORT: ${{ secrets.PORT }}
-      MONGO_URI: ${{ secrets.MONGO_URI }}
-      JWT_SECRET: ${{ secrets.JWT_SECRET }}
-
-    services:
-      mongo:
-        image: mongo
-        ports:
-          - 27017:27017
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Install Dependencies
-        working-directory: ./backend
-        run: npm install
-
-      - name: Waiting for MongoDB
-        run: |
-          until nc -z localhost 27017; do
-            echo "Waiting for MongoDB..."
-            sleep 2
-          done
-
-          echo "MongoDB is up"
+        run: node seedTasksData.js
 
       - name: Run Backend Tests
         working-directory: ./backend
