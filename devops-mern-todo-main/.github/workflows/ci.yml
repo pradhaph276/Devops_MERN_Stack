@@ -1,4 +1,4 @@
-name: MERN CI
+name: MERN Backend CI
 
 on:
   push:
@@ -13,7 +13,7 @@ on:
 
 jobs:
   backend-test:
-    name: Backend Tests
+    name: Backend - MongoDB Init & Tests
     runs-on: ubuntu-latest
 
     services:
@@ -33,9 +33,12 @@ jobs:
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
     steps:
+
+      # 1. Checkout code
       - name: Checkout Repository
         uses: actions/checkout@v5
 
+      # 2. Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -43,46 +46,27 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
 
+      # 3. Install backend dependencies
       - name: Install Backend Dependencies
         working-directory: ./backend
         run: npm ci
 
-      - name: Check MongoDB Connection
+      # 4. Wait for MongoDB
+      - name: Wait for MongoDB
         run: |
           until nc -z localhost 27017; do
             echo "Waiting for MongoDB..."
             sleep 2
           done
+
           echo "MongoDB is ready"
 
-      - name: Seed MongoDB
+      # 5. Initialize / Seed MongoDB
+      - name: Initialize MongoDB
         working-directory: ./backend
         run: node seedTasksData.js
 
+      # 6. Run backend tests
       - name: Run Backend Tests
         working-directory: ./backend
         run: npm test
-
-
-  frontend-test:
-    name: Frontend Build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v5
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install Frontend Dependencies
-        working-directory: ./frontend
-        run: npm ci
-
-      - name: Build Frontend
-        working-directory: ./frontend
-        run: npm run build
