@@ -20,11 +20,11 @@ jobs:
     
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
-        with: 
+        with:  
           node-version: '18'
 
       - name: Waiting for MongoDB to be ready
@@ -44,3 +44,20 @@ jobs:
       - name: Running Backend Tests
         working-directory: ./backend
         run: npm test
+
+test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name:checkout Repository
+      - uses:actions/checkout@v7
+
+      -name:setup Node.js
+      -uses:actions/setup-node@v3
+      -with:
+        node-version: '18'  
+      -name:Install dependiencies for back
+      -run:npm install
+
+      -name:Run backend tests
+      -run:npm test
