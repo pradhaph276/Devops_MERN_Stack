@@ -13,21 +13,31 @@ on:
 
 jobs:
 
+  # ==========================================
+  # MONGODB INITIALIZATION
+  # ==========================================
   mongo-init:
+    name: MongoDB Init
     runs-on: ubuntu-latest
 
     env:
-      PORT: ${{ secrets.PORT }}
-      MONGO_URI: ${{ secrets.MONGO_URI }}
+      PORT: 5000
+      MONGO_URI: mongodb://localhost:27017/todoapp
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
     services:
       mongo:
-        image: mongo
+        image: mongo:8
         ports:
           - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
+
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -36,7 +46,11 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Waiting for MongoDB to be ready
+      - name: Install Backend Dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Waiting for MongoDB
         run: |
           until nc -z localhost 27017; do
             echo "Waiting for MongoDB..."
@@ -47,30 +61,36 @@ jobs:
 
       - name: Seed MongoDB
         working-directory: ./backend
-        run: |
-          npm install
-          node seedTasksData.js
+        run: node seedTasksData.js
 
 
+  # ==========================================
+  # BACKEND TEST
+  # ==========================================
   test:
+    name: Backend Tests
     runs-on: ubuntu-latest
 
     needs: mongo-init
 
     env:
-      PORT: ${{ secrets.PORT }}
-      MONGO_URI: ${{ secrets.MONGO_URI }}
+      PORT: 5000
+      MONGO_URI: mongodb://localhost:27017/todoapp
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
-
-      
 
     services:
       mongo:
-        image: mongo
+        image: mongo:8
         ports:
           - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
+
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -79,9 +99,9 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Install Dependencies
+      - name: Install Backend Dependencies
         working-directory: ./backend
-        run: npm install
+        run: npm ci
 
       - name: Waiting for MongoDB
         run: |
@@ -91,6 +111,10 @@ jobs:
           done
 
           echo "MongoDB is up"
+
+      - name: Seed MongoDB for Tests
+        working-directory: ./backend
+        run: node seedTasksData.js
 
       - name: Run Backend Tests
         working-directory: ./backend
