@@ -19,7 +19,7 @@ jobs:
     env:
       PORT: ${{ secrets.PORT }}
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
-      MONGO_URI: mongodb://localhost:27017/todoapp
+      MONGO_URI: ${{ secrets.MONGO_URI }}
 
     services:
       mongo:
