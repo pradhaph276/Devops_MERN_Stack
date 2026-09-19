@@ -21,7 +21,7 @@ jobs:
 
     env:
       PORT: ${{ secrets.PORT }}
-      MONGO_URI: mongodb://localhost:27017/mern_db
+      MONGO_URI: ${{ secrets.MONGO_URI }}
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
     services:
