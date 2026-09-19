@@ -1,0 +1,65 @@
+name: MERN CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+  pull_request:
+    branches:
+      - main
+      - master
+
+  workflow_dispatch:
+
+jobs:
+  mongo-init:
+    name: MongoDB Init
+    runs-on: ubuntu-latest
+
+    env:
+      PORT: ${{ secrets.PORT }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      MONGO_URI: mongodb://localhost:27017/todoapp
+
+    services:
+      mongo:
+        image: mongo:8
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Check Node and NPM
+        run: |
+          node --version
+          npm --version
+
+      - name: Install Backend Dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Check MongoDB
+        run: |
+          mongosh mongodb://localhost:27017/todoapp \
+            --eval "db.adminCommand('ping')"
+
+      - name: Seed MongoDB
+        working-directory: ./backend
+        run: node seedTasksData.js
+
+      - name: CI Completed
+        run: echo "MongoDB initialization and seeding completed successfully"
