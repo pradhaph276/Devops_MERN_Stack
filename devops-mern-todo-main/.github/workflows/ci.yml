@@ -12,17 +12,14 @@ on:
       - master
 
 jobs:
-  # ==========================================
-  # MONGODB INITIALIZATION
-  # ==========================================
   mongo-init:
     name: MongoDB Init
     runs-on: ubuntu-latest
 
     env:
       PORT: ${{ secrets.PORT }}
-      MONGO_URI: ${{ secrets.MONGO_URI }}
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      MONGO_URI: mongodb://localhost:27017/todoapp
 
     services:
       mongo:
@@ -36,36 +33,26 @@ jobs:
           --health-retries 5
 
     steps:
-      # Checkout code
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: 18
 
-      # Install backend dependencies
       - name: Install Backend Dependencies
         working-directory: ./backend
         run: npm ci
 
-      # Wait for MongoDB
-      - name: Wait for MongoDB
+      - name: Check MongoDB
         run: |
-          until nc -z localhost 27017; do
-            echo "Waiting for MongoDB..."
-            sleep 2
-          done
+          mongosh mongodb://localhost:27017/todoapp --eval "db.adminCommand('ping')"
+       
 
-          echo "MongoDB is up and running"
-
-      # Seed MongoDB
       - name: Seed MongoDB
         working-directory: ./backend
         run: node seedTasksData.js
 
-      # Complete
-      - name: MongoDB Initialization Completed
+      - name: CI Completed
         run: echo "MongoDB initialization and seeding completed successfully"
